@@ -4439,6 +4439,12 @@ textarea{
   }
 }
 
+
+/* V43 — atribuições completas na mensagem de busca */
+.scale-notice-chip:not(.position){
+  border-color:#e7c985;
+}
+
 </style>
 </head>
 <body>
@@ -4863,7 +4869,7 @@ function aplicarDadosDaApi(payload){
 
 
 /* ============================================================
-   V42 — FOTOS DETERMINÍSTICAS + ATUALIZAÇÃO AUTOMÁTICA + SCROLL TOUCH CONSISTENTE
+   V43 — BUSCA COM ATRIBUIÇÕES COMPLETAS + FOTOS DETERMINÍSTICAS + SCROLL TOUCH
    - Mostra instantaneamente a última escala salva no navegador.
    - Atualiza em segundo plano com a planilha.
    - O intervalo vem da CONFIG > ATUALIZACAO_SITE.
@@ -5567,8 +5573,11 @@ function closeScaleNotice(){
 }
 function openScaleNotice(payload){
   const status=payload?.status || "escalado";
-  const roles=(payload?.roles||[]).filter(Boolean);
-  const positions=roles.filter(role=>/^Posição /i.test(role));
+  const roles=(payload?.roles||[])
+    .map(role=>String(role||"").trim())
+    .filter(Boolean)
+    .filter((role,index,array)=>array.indexOf(role)===index);
+
   const name=payload?.name || "Obreiro";
 
   if(status==="nao-escalado"){
@@ -5577,13 +5586,30 @@ function openScaleNotice(payload){
     scaleNoticePositions.innerHTML=`<span class="scale-notice-chip">Não escalado</span>`;
   }else{
     scaleNoticeTitle.textContent="Você está escalado";
-    scaleNoticeText.textContent = positions.length
-      ? `Olá, ${name}. Você está escalado e sua posição está indicada abaixo.`
-      : `Olá, ${name}. Seu nome está na escala de hoje. Você ficará à disposição para qualquer eventualidade.`;
 
-    scaleNoticePositions.innerHTML = positions.length
-      ? positions.map(role=>`<span class="scale-notice-chip position">${escapeHtml(role)}</span>`).join("")
-      : `<span class="scale-notice-chip">À disposição</span>`;
+    const atribuicoes=roles.filter(role=>
+      normalizedName(role)!==normalizedName("À disposição")
+    );
+
+    if(atribuicoes.length){
+      scaleNoticeText.textContent = atribuicoes.length===1
+        ? `Olá, ${name}. Você está escalado e sua atribuição está indicada abaixo.`
+        : `Olá, ${name}. Você está escalado e suas atribuições estão indicadas abaixo.`;
+
+      scaleNoticePositions.innerHTML = atribuicoes
+        .map(role=>{
+          const isPosition=/^Posição /i.test(role);
+          const extraClass=isPosition ? " position" : "";
+          return `<span class="scale-notice-chip${extraClass}">${escapeHtml(role)}</span>`;
+        })
+        .join("");
+    }else{
+      scaleNoticeText.textContent=
+        `Olá, ${name}. Seu nome está na escala de hoje. Você ficará à disposição para qualquer eventualidade.`;
+
+      scaleNoticePositions.innerHTML=
+        `<span class="scale-notice-chip">À disposição</span>`;
+    }
   }
 
   scaleNotice.classList.add("show");
