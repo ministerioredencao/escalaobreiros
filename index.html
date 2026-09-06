@@ -4187,6 +4187,85 @@ body{
   }
 }
 
+
+/* ============================================================
+   V38 — ROLAGEM SUAVE / MOBILE
+   Mantém o visual, mas tira peso da GPU durante o gesto de rolagem.
+   ============================================================ */
+
+html,body{
+  touch-action:pan-y;
+  overscroll-behavior-y:auto;
+}
+
+@media (max-width:768px), (hover:none) and (pointer:coarse){
+
+  /* Backdrop blur em elementos fixos costuma causar "agarradas"
+     em Android/iPhone durante scroll. */
+  .bottom-nav,
+  .drawer,
+  .scale-notice-overlay,
+  .modal,
+  [class*="glass"]{
+    -webkit-backdrop-filter:none !important;
+    backdrop-filter:none !important;
+  }
+
+  /* Decoração continua visível, porém sem filtros caros. */
+  .immersive-scene,
+  .immersive-scene *,
+  .ambient-scene,
+  .ambient-scene *{
+    filter:none !important;
+  }
+
+  /* Elementos fixos em camada própria. */
+  .bottom-nav,
+  .clean-fab,
+  .roster-fab{
+    transform:translateZ(0);
+    backface-visibility:hidden;
+    -webkit-backface-visibility:hidden;
+  }
+
+  /* A página não precisa promover cada cartão para uma camada. */
+  .map-card,
+  .hall,
+  .room-card,
+  .clean-item,
+  .person-card{
+    will-change:auto !important;
+  }
+
+  /* Durante o dedo na tela / rolagem, congela efeitos infinitos.
+     Assim que a rolagem para, eles voltam automaticamente. */
+  html.is-scrolling *,
+  html.is-scrolling *::before,
+  html.is-scrolling *::after{
+    animation-play-state:paused !important;
+  }
+
+  html.is-scrolling .immersive-scene,
+  html.is-scrolling .immersive-scene *,
+  html.is-scrolling .hero-light-divider,
+  html.is-scrolling .hero-light-divider::before,
+  html.is-scrolling .hero-light-divider::after,
+  html.is-scrolling .gold-track,
+  html.is-scrolling .gold-track::before,
+  html.is-scrolling .gold-track::after{
+    filter:none !important;
+  }
+
+  /* Sombra mais leve somente enquanto rola. */
+  html.is-scrolling .bottom-nav,
+  html.is-scrolling .clean-fab,
+  html.is-scrolling .roster-fab,
+  html.is-scrolling .hall,
+  html.is-scrolling .map-card{
+    box-shadow:none !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -4514,6 +4593,28 @@ body{
 
 <script>
 
+
+/* V38 — detecta somente o período real de rolagem */
+let _scrollStopTimer=null;
+let _scrollingClassOn=false;
+
+function marcarRolagemAtiva(){
+  if(!_scrollingClassOn){
+    document.documentElement.classList.add('is-scrolling');
+    _scrollingClassOn=true;
+  }
+
+  clearTimeout(_scrollStopTimer);
+  _scrollStopTimer=setTimeout(()=>{
+    document.documentElement.classList.remove('is-scrolling');
+    _scrollingClassOn=false;
+  },140);
+}
+
+window.addEventListener('scroll',marcarRolagemAtiva,{passive:true});
+window.addEventListener('touchmove',marcarRolagemAtiva,{passive:true});
+
+
 /* ============================================================
    CONEXÃO COM O ADM / GOOGLE PLANILHAS
 
@@ -4589,7 +4690,7 @@ function aplicarDadosDaApi(payload){
 
 
 /* ============================================================
-   V37 — CARREGAMENTO RÁPIDO + ATUALIZAÇÃO AUTOMÁTICA
+   V38 — CARREGAMENTO RÁPIDO + ATUALIZAÇÃO AUTOMÁTICA + SCROLL SUAVE
    - Mostra instantaneamente a última escala salva no navegador.
    - Atualiza em segundo plano com a planilha.
    - O intervalo vem da CONFIG > ATUALIZACAO_SITE.
@@ -4600,6 +4701,19 @@ const ESCALA_CACHE_PREFIX='redencao:escala:v37:';
 let atualizacaoSiteSegundos=60;
 let timerAtualizacaoEscala=null;
 let atualizacaoEscalaEmAndamento=false;
+let ultimaAssinaturaVisual='';
+
+function assinaturaVisualPayload(payload){
+  try{
+    return JSON.stringify({
+      culto:payload?.culto || null,
+      escala:payload?.escala || null,
+      cadastro:payload?.cadastro || null
+    });
+  }catch(e){
+    return String(Date.now());
+  }
+}
 
 function normalizarIntervaloAtualizacao(valor){
   const numero=Number(valor);
@@ -4651,6 +4765,7 @@ function carregarEscalaDoCache(){
     if(!cache || !cache.payload || cache.payload.sucesso!==true) return false;
 
     aplicarDadosDaApi(cache.payload);
+    ultimaAssinaturaVisual=assinaturaVisualPayload(cache.payload);
     document.documentElement.dataset.escalaCache='carregada';
     return true;
   }catch(e){
@@ -4668,7 +4783,15 @@ window.receberEscalaRedencao=function(payload){
     );
   }
 
-  aplicarDadosDaApi(payload);
+  const assinaturaNova=assinaturaVisualPayload(payload);
+
+  // Se a escala não mudou, não recria mapa, setores e cartões.
+  // A consulta continua acontecendo, mas sem travar a rolagem.
+  if(assinaturaNova!==ultimaAssinaturaVisual){
+    aplicarDadosDaApi(payload);
+    ultimaAssinaturaVisual=assinaturaNova;
+  }
+
   atualizacaoEscalaEmAndamento=false;
   agendarProximaAtualizacao();
 };
