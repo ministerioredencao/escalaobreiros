@@ -4445,6 +4445,142 @@ textarea{
   border-color:#e7c985;
 }
 
+
+/* ============================================================
+   V44 — ESCALA DA LIMPEZA DIRETA
+   Sem ícone de serviço, sem segunda janela.
+   Mostra local + obreiro(s) + foto/avatar no próprio card.
+   ============================================================ */
+
+#cleanDrawer .clean-list{
+  display:grid;
+  gap:10px;
+}
+
+#cleanDrawer .clean-item-direct{
+  position:relative;
+  overflow:hidden;
+  padding:14px 14px 13px;
+  border:1px solid #d3e6e4;
+  border-radius:17px;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.98),rgba(244,252,251,.98));
+  box-shadow:
+    0 7px 17px rgba(31,86,85,.065),
+    inset 0 1px 0 rgba(255,255,255,.95);
+}
+
+#cleanDrawer .clean-item-direct::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:11px;
+  bottom:11px;
+  width:3px;
+  border-radius:0 5px 5px 0;
+  background:linear-gradient(180deg,#72d0df,#2e9eb0);
+}
+
+#cleanDrawer .clean-item-direct::after{
+  content:"";
+  position:absolute;
+  right:18px;
+  top:15px;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#75cfdf;
+  box-shadow:9px 9px 0 -1px rgba(241,184,49,.70);
+  opacity:.72;
+}
+
+#cleanDrawer .clean-direct-title{
+  margin:0 24px 9px 0;
+  color:#203536;
+  font-size:.79rem;
+  line-height:1.2;
+  font-weight:800;
+}
+
+#cleanDrawer .clean-assignees{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+}
+
+#cleanDrawer .clean-assignees[data-count="2"]{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+
+#cleanDrawer .clean-assignee{
+  min-width:0;
+  display:grid;
+  grid-template-columns:46px minmax(0,1fr);
+  align-items:center;
+  gap:9px;
+  padding:7px 8px;
+  border:1px solid rgba(95,182,190,.18);
+  border-radius:13px;
+  background:rgba(235,250,250,.58);
+}
+
+#cleanDrawer .clean-assignee-photo{
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  overflow:hidden;
+  border:2px solid rgba(255,255,255,.92);
+  background:
+    linear-gradient(145deg,#92e1e8,#45aebb);
+  box-shadow:
+    0 4px 10px rgba(45,142,153,.16),
+    0 0 0 1px rgba(68,160,171,.22);
+}
+
+#cleanDrawer .clean-assignee-photo img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+#cleanDrawer .clean-assignee-copy{
+  min-width:0;
+}
+
+#cleanDrawer .clean-assignee-copy strong{
+  display:block;
+  color:#31494b;
+  font-size:.69rem;
+  line-height:1.18;
+  font-weight:800;
+  overflow-wrap:anywhere;
+}
+
+#cleanDrawer .clean-assignee-copy span{
+  display:block;
+  margin-top:2px;
+  color:#718486;
+  font-size:.56rem;
+  line-height:1.18;
+}
+
+#cleanDrawer .clean-empty-person{
+  padding:9px 10px;
+  border-radius:12px;
+  border:1px dashed rgba(75,156,165,.28);
+  color:#6e8385;
+  background:rgba(240,250,250,.58);
+  font-size:.62rem;
+}
+
+@media (max-width:390px){
+  #cleanDrawer .clean-assignees[data-count="2"]{
+    grid-template-columns:1fr;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -4619,7 +4755,7 @@ textarea{
     <div class="drawer-head-icon ios-icon ios-clean uploaded-drawer-icon" aria-hidden="true"><img class="asset-img" src="icone-limpeza.webp" alt="" width="128" height="128" decoding="async"></div>
     <div>
       <strong id="cleanTitle">Escala da Limpeza</strong>
-      <span>Selecione o serviço de limpeza</span>
+      <span>Responsáveis por cada serviço</span>
     </div>
     <button id="closeClean" class="close-btn" type="button">Fechar</button>
   </header>
@@ -4629,62 +4765,7 @@ textarea{
     <p class="clean-alert">🚨 Os obreiros escalados nos banheiros do pátio serão responsáveis por retirar o lixo da lixeira localizada junto à pia do banheiro e da lixeira ao lado do bebedouro.</p>
   </div>
 
-  <div class="clean-list">
-    <button class="clean-item" data-clean-sector="banheiroMasculino"><span class="clean-sparkle" aria-hidden="true"></span>
-      <span class="clean-icon" aria-hidden="true">
-      <svg class="ios-symbol" viewBox="0 0 24 24">
-        <path d="M7.2 4.5h9.6l-1 3.1H8.2Z" fill="rgba(255,255,255,.95)"/>
-        <path d="M8 8.3h8v10.2a1.8 1.8 0 0 1-1.8 1.8H9.8A1.8 1.8 0 0 1 8 18.5Z" fill="rgba(255,255,255,.95)"/>
-        <path d="M10 12.1h4" stroke="#2d8495" stroke-width="1.6" stroke-linecap="round"/>
-      </svg>
-    </span>
-      <span class="clean-copy"><strong>Banheiro masculino</strong><span>1 obreiro responsável</span></span>
-      <span class="chevron">›</span>
-    </button>
-    <button class="clean-item" data-clean-sector="banheiroFeminino"><span class="clean-sparkle" aria-hidden="true"></span>
-      <span class="clean-icon" aria-hidden="true">
-      <svg class="ios-symbol" viewBox="0 0 24 24">
-        <path d="M8 4.8h8l-1 2.9H9Z" fill="rgba(255,255,255,.96)"/>
-        <path d="M8.4 8.4h7.2v9.9a2 2 0 0 1-2 2h-3.2a2 2 0 0 1-2-2Z" fill="rgba(255,255,255,.96)"/>
-        <path d="M10.4 12h3.2M12 10.4v3.2" stroke="#2d8495" stroke-width="1.45" stroke-linecap="round"/>
-      </svg>
-    </span>
-      <span class="clean-copy"><strong>Banheiro feminino</strong><span>1 obreira responsável</span></span>
-      <span class="chevron">›</span>
-    </button>
-    <button class="clean-item" data-clean-sector="banheiroSalas"><span class="clean-sparkle" aria-hidden="true"></span>
-      <span class="clean-icon" aria-hidden="true">
-      <svg class="ios-symbol" viewBox="0 0 24 24">
-        <path d="M5.5 7.5h13v11h-13z" fill="none" stroke="rgba(255,255,255,.96)" stroke-width="1.7"/>
-        <path d="M8 7.5V5.2h8v2.3" fill="none" stroke="rgba(255,255,255,.96)" stroke-width="1.7"/>
-        <path d="M9 12h6" stroke="rgba(255,255,255,.96)" stroke-width="1.7" stroke-linecap="round"/>
-      </svg>
-    </span>
-      <span class="clean-copy"><strong>Banheiro das salas dos obreiros</strong><span>1 obreira responsável</span></span>
-      <span class="chevron">›</span>
-    </button>
-    <button class="clean-item" data-clean-sector="panos"><span class="clean-sparkle" aria-hidden="true"></span>
-      <span class="clean-icon" aria-hidden="true">
-      <svg class="ios-symbol" viewBox="0 0 24 24">
-        <path d="M5 9.5c2.2-2.5 4.6-3.8 7.2-3.8 2.5 0 4.8 1.1 6.8 3.3l-2.4 9.2H7.1Z" fill="rgba(255,255,255,.94)"/>
-        <path d="M8.2 10.2c2.1 1.1 5.5 1.1 7.6 0" fill="none" stroke="#2d8495" stroke-width="1.35" stroke-linecap="round"/>
-      </svg>
-    </span>
-      <span class="clean-copy"><strong>Limpeza dos panos</strong><span>2 obreiros responsáveis</span></span>
-      <span class="chevron">›</span>
-    </button>
-    <button class="clean-item" data-clean-sector="blindexBebedouro"><span class="clean-sparkle" aria-hidden="true"></span>
-      <span class="clean-icon" aria-hidden="true">
-      <svg class="ios-symbol" viewBox="0 0 24 24">
-        <path d="M12 3.6c2.6 3.4 4.4 5.8 4.4 8.2a4.4 4.4 0 1 1-8.8 0C7.6 9.4 9.4 7 12 3.6Z" fill="rgba(255,255,255,.96)"/>
-        <path d="M10 13.4c.7.8 1.4 1.1 2.2 1.1" fill="none" stroke="#2d8495" stroke-width="1.3" stroke-linecap="round"/>
-        <path d="M17.7 5.6l.7 1.5 1.6.3-1.2 1.1.3 1.6-1.4-.8-1.5.8.3-1.6-1.2-1.1 1.6-.3Z" fill="#ffd36b"/>
-      </svg>
-    </span>
-      <span class="clean-copy"><strong>Blindex e bebedouro</strong><span>1 obreira responsável</span></span>
-      <span class="chevron">›</span>
-    </button>
-  </div>
+  <div id="cleanList" class="clean-list"></div>
 </section>
 
 
@@ -4869,7 +4950,7 @@ function aplicarDadosDaApi(payload){
 
 
 /* ============================================================
-   V43 — BUSCA COM ATRIBUIÇÕES COMPLETAS + FOTOS DETERMINÍSTICAS + SCROLL TOUCH
+   V44 — LIMPEZA DIRETA + BUSCA COMPLETA + FOTOS DETERMINÍSTICAS
    - Mostra instantaneamente a última escala salva no navegador.
    - Atualiza em segundo plano com a planilha.
    - O intervalo vem da CONFIG > ATUALIZACAO_SITE.
@@ -5252,10 +5333,53 @@ function closeScrim(){
     document.body.style.overflow="";
   }
 }
+function renderCleaning(){
+  const config=[
+    ["banheiroMasculino","Banheiro masculino","1 obreiro responsável"],
+    ["banheiroFeminino","Banheiro feminino","1 obreira responsável"],
+    ["banheiroSalas","Banheiro das salas dos obreiros","1 obreira responsável"],
+    ["panos","Limpeza dos panos","2 obreiros responsáveis"],
+    ["blindexBebedouro","Blindex e bebedouro","1 obreira responsável"]
+  ];
+
+  const list=$("#cleanList");
+  if(!list) return;
+
+  list.innerHTML=config.map(([id,titulo,descricao])=>{
+    const pessoas=(sectors[id]?.people || []).filter(p=>p?.name);
+
+    const peopleHtml=pessoas.length
+      ? pessoas.map(person=>`
+          <div class="clean-assignee">
+            <div class="clean-assignee-photo photo">
+              ${photoHtml(person)}
+            </div>
+            <div class="clean-assignee-copy">
+              <strong>${escapeHtml(person.name)}</strong>
+              <span>${escapeHtml(descricao)}</span>
+            </div>
+          </div>
+        `).join("")
+      : `<div class="clean-empty-person">Nenhum obreiro definido para esta função.</div>`;
+
+    return `
+      <article class="clean-item-direct">
+        <h3 class="clean-direct-title">${escapeHtml(titulo)}</h3>
+        <div class="clean-assignees" data-count="${Math.max(1,pessoas.length)}">
+          ${peopleHtml}
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  activatePhotoFallbacks(list);
+}
+
 function openCleaning(){
   rosterDrawer.classList.remove("open");
   personSheet.classList.remove("open");
   afterServiceDrawer.classList.remove("open");
+  renderCleaning();
   cleanDrawer.classList.add("open");
   openScrim();
 }
@@ -5539,7 +5663,6 @@ function focusSearch(){
 }
 
 $$("[data-sector]").forEach(button=>button.addEventListener("click",()=>openSector(button.dataset.sector)));
-$$("[data-clean-sector]").forEach(button=>button.addEventListener("click",()=>openSector(button.dataset.cleanSector)));
 
 $("#rosterFab").addEventListener("click",openRoster);
 $("#cleanFab").addEventListener("click",openCleaning);
