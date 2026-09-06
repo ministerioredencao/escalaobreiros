@@ -4189,13 +4189,44 @@ body{
 
 
 /* ============================================================
-   V38 — ROLAGEM SUAVE / MOBILE
+   V39 — ROLAGEM NATIVA / SEM EFEITO ELÁSTICO
    Mantém o visual, mas tira peso da GPU durante o gesto de rolagem.
    ============================================================ */
 
 html,body{
-  touch-action:pan-y;
-  overscroll-behavior-y:auto;
+  touch-action:pan-y pinch-zoom;
+  overscroll-behavior-y:none !important;
+  overscroll-behavior-x:none !important;
+  scroll-behavior:auto !important;
+}
+
+body{
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+
+.app{
+  overscroll-behavior:none !important;
+}
+
+/* Evita que áreas internas "devolvam" o gesto para a página,
+   causando o efeito de bater/voltar no celular. */
+.drawer{
+  overscroll-behavior:contain !important;
+  -webkit-overflow-scrolling:touch;
+}
+
+.header-status{
+  overscroll-behavior-inline:contain;
+}
+
+button,
+a,
+input,
+select,
+textarea{
+  touch-action:manipulation;
 }
 
 @media (max-width:768px), (hover:none) and (pointer:coarse){
@@ -4612,7 +4643,7 @@ function marcarRolagemAtiva(){
 }
 
 window.addEventListener('scroll',marcarRolagemAtiva,{passive:true});
-window.addEventListener('touchmove',marcarRolagemAtiva,{passive:true});
+/* touchmove removido na V39: o scroll nativo fica totalmente livre. */
 
 
 /* ============================================================
@@ -4690,7 +4721,7 @@ function aplicarDadosDaApi(payload){
 
 
 /* ============================================================
-   V38 — CARREGAMENTO RÁPIDO + ATUALIZAÇÃO AUTOMÁTICA + SCROLL SUAVE
+   V39 — CARREGAMENTO RÁPIDO + ATUALIZAÇÃO AUTOMÁTICA + SCROLL NATIVO
    - Mostra instantaneamente a última escala salva no navegador.
    - Atualiza em segundo plano com a planilha.
    - O intervalo vem da CONFIG > ATUALIZACAO_SITE.
