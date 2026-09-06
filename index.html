@@ -4189,51 +4189,70 @@ body{
 
 
 /* ============================================================
-   V39 — ROLAGEM NATIVA / SEM EFEITO ELÁSTICO
-   Mantém o visual, mas tira peso da GPU durante o gesto de rolagem.
+   V40 — TOUCH NATIVO / ROLAGEM LIVRE NO CELULAR
+   O gesto vertical pode começar inclusive sobre botões e cartões.
    ============================================================ */
 
-html,body{
-  touch-action:pan-y pinch-zoom;
-  overscroll-behavior-y:none !important;
-  overscroll-behavior-x:none !important;
-  scroll-behavior:auto !important;
+html{
+  scroll-behavior:smooth;
+  -webkit-text-size-adjust:100%;
 }
 
 body{
-  overflow-y:auto;
   overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
 }
 
-.app{
-  overscroll-behavior:none !important;
-}
-
-/* Evita que áreas internas "devolvam" o gesto para a página,
-   causando o efeito de bater/voltar no celular. */
-.drawer{
-  overscroll-behavior:contain !important;
-  -webkit-overflow-scrolling:touch;
-}
-
-.header-status{
-  overscroll-behavior-inline:contain;
-}
-
+/* IMPORTANTE:
+   pan-y permite iniciar a rolagem mesmo quando o dedo começa
+   sobre uma posição, botão, card ou FAB. */
 button,
 a,
+.position-btn,
+.room-action,
+.clean-item,
+.search-result,
+.nav-btn,
+.roster-fab,
+.clean-fab{
+  touch-action:pan-y !important;
+}
+
 input,
 select,
 textarea{
-  touch-action:manipulation;
+  touch-action:auto !important;
+}
+
+.drawer{
+  touch-action:pan-y !important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+}
+
+.header-status{
+  touch-action:auto !important;
 }
 
 @media (max-width:768px), (hover:none) and (pointer:coarse){
 
-  /* Backdrop blur em elementos fixos costuma causar "agarradas"
-     em Android/iPhone durante scroll. */
-  .bottom-nav,
+  /* Mantém o scroll do Safari/iPhone 100% nativo.
+     Sem bloqueios de gesto e sem alterações de CSS a cada movimento. */
+  html,
+  body,
+  .app{
+    overscroll-behavior:auto !important;
+  }
+
+  .map-card,
+  .hall,
+  .room-card,
+  .clean-item,
+  .person-card,
+  .position-btn,
+  .room-action{
+    will-change:auto !important;
+  }
+
   .drawer,
   .scale-notice-overlay,
   .modal,
@@ -4242,59 +4261,72 @@ textarea{
     backdrop-filter:none !important;
   }
 
-  /* Decoração continua visível, porém sem filtros caros. */
-  .immersive-scene,
-  .immersive-scene *,
-  .ambient-scene,
-  .ambient-scene *{
-    filter:none !important;
+  /* Botões flutuantes com o MESMO tamanho */
+  .roster-fab,
+  .clean-fab{
+    width:min(44vw,176px) !important;
+    min-height:56px !important;
+    padding:7px 10px 7px 7px !important;
+    gap:9px !important;
+    justify-content:flex-start !important;
   }
 
-  /* Elementos fixos em camada própria. */
-  .bottom-nav,
-  .clean-fab,
-  .roster-fab{
-    transform:translateZ(0);
-    backface-visibility:hidden;
-    -webkit-backface-visibility:hidden;
+  .roster-fab-icon,
+  .clean-fab-icon{
+    width:38px !important;
+    height:38px !important;
+    flex:0 0 38px !important;
   }
 
-  /* A página não precisa promover cada cartão para uma camada. */
-  .map-card,
-  .hall,
-  .room-card,
-  .clean-item,
-  .person-card{
-    will-change:auto !important;
+  .roster-fab-copy,
+  .clean-fab-copy{
+    min-width:0;
+    flex:1;
   }
 
-  /* Durante o dedo na tela / rolagem, congela efeitos infinitos.
-     Assim que a rolagem para, eles voltam automaticamente. */
-  html.is-scrolling *,
-  html.is-scrolling *::before,
-  html.is-scrolling *::after{
-    animation-play-state:paused !important;
+  .roster-fab-copy strong,
+  .clean-fab-copy strong{
+    font-size:.66rem !important;
+    line-height:1.12 !important;
+    white-space:nowrap;
   }
 
-  html.is-scrolling .immersive-scene,
-  html.is-scrolling .immersive-scene *,
-  html.is-scrolling .hero-light-divider,
-  html.is-scrolling .hero-light-divider::before,
-  html.is-scrolling .hero-light-divider::after,
-  html.is-scrolling .gold-track,
-  html.is-scrolling .gold-track::before,
-  html.is-scrolling .gold-track::after{
-    filter:none !important;
+  .roster-fab-copy span,
+  .clean-fab-copy span{
+    display:block !important;
+    font-size:.53rem !important;
+    line-height:1.12 !important;
+    white-space:nowrap;
   }
+}
 
-  /* Sombra mais leve somente enquanto rola. */
-  html.is-scrolling .bottom-nav,
-  html.is-scrolling .clean-fab,
-  html.is-scrolling .roster-fab,
-  html.is-scrolling .hall,
-  html.is-scrolling .map-card{
-    box-shadow:none !important;
-  }
+/* Aviso operacional da limpeza */
+.clean-duty-note{
+  margin:0 0 12px;
+  padding:12px 13px;
+  border-radius:16px;
+  border:1px solid #d8e7e6;
+  background:
+    linear-gradient(180deg,#faffff 0%,#effafa 100%);
+  color:#34575a;
+  font-size:.70rem;
+  line-height:1.46;
+  box-shadow:0 5px 14px rgba(28,96,104,.07);
+}
+.clean-duty-note p{
+  margin:0;
+}
+.clean-duty-note p + p{
+  margin-top:9px;
+  padding-top:9px;
+  border-top:1px solid rgba(64,143,151,.16);
+}
+.clean-duty-note strong{
+  color:#24565c;
+}
+.clean-duty-note .clean-alert{
+  color:#7a2e25;
+  font-weight:700;
 }
 
 </style>
@@ -4476,6 +4508,11 @@ textarea{
     <button id="closeClean" class="close-btn" type="button">Fechar</button>
   </header>
 
+  <div class="clean-duty-note" role="note" aria-label="Orientações para limpeza dos banheiros">
+    <p><strong>Obs.:</strong> Os obreiros responsáveis pela limpeza dos banheiros devem verificar, a cada <strong>20 minutos</strong> durante o culto: lixeira, pia, vaso e chão.</p>
+    <p class="clean-alert">🚨 Os obreiros escalados nos banheiros do pátio serão responsáveis por retirar o lixo da lixeira localizada junto à pia do banheiro e da lixeira ao lado do bebedouro.</p>
+  </div>
+
   <div class="clean-list">
     <button class="clean-item" data-clean-sector="banheiroMasculino"><span class="clean-sparkle" aria-hidden="true"></span>
       <span class="clean-icon" aria-hidden="true">
@@ -4625,25 +4662,6 @@ textarea{
 <script>
 
 
-/* V38 — detecta somente o período real de rolagem */
-let _scrollStopTimer=null;
-let _scrollingClassOn=false;
-
-function marcarRolagemAtiva(){
-  if(!_scrollingClassOn){
-    document.documentElement.classList.add('is-scrolling');
-    _scrollingClassOn=true;
-  }
-
-  clearTimeout(_scrollStopTimer);
-  _scrollStopTimer=setTimeout(()=>{
-    document.documentElement.classList.remove('is-scrolling');
-    _scrollingClassOn=false;
-  },140);
-}
-
-window.addEventListener('scroll',marcarRolagemAtiva,{passive:true});
-/* touchmove removido na V39: o scroll nativo fica totalmente livre. */
 
 
 /* ============================================================
@@ -4721,7 +4739,7 @@ function aplicarDadosDaApi(payload){
 
 
 /* ============================================================
-   V39 — CARREGAMENTO RÁPIDO + ATUALIZAÇÃO AUTOMÁTICA + SCROLL NATIVO
+   V40 — CARREGAMENTO RÁPIDO + ATUALIZAÇÃO AUTOMÁTICA + TOUCH NATIVO
    - Mostra instantaneamente a última escala salva no navegador.
    - Atualiza em segundo plano com a planilha.
    - O intervalo vem da CONFIG > ATUALIZACAO_SITE.
