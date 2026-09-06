@@ -4589,13 +4589,34 @@ function aplicarDadosDaApi(payload){
 
 
 /* ============================================================
-   V34 — CARREGAMENTO RÁPIDO
+   V37 — CARREGAMENTO RÁPIDO + ATUALIZAÇÃO AUTOMÁTICA
    - Mostra instantaneamente a última escala salva no navegador.
    - Atualiza em segundo plano com a planilha.
+   - O intervalo vem da CONFIG > ATUALIZACAO_SITE.
    - Evita cache antigo do navegador na chamada da API.
    ============================================================ */
 
-const ESCALA_CACHE_PREFIX='redencao:escala:v34:';
+const ESCALA_CACHE_PREFIX='redencao:escala:v37:';
+let atualizacaoSiteSegundos=60;
+let timerAtualizacaoEscala=null;
+let atualizacaoEscalaEmAndamento=false;
+
+function normalizarIntervaloAtualizacao(valor){
+  const numero=Number(valor);
+  if(!Number.isFinite(numero)) return 60;
+  return Math.max(10,Math.min(300,Math.round(numero)));
+}
+
+function agendarProximaAtualizacao(){
+  if(timerAtualizacaoEscala){
+    clearTimeout(timerAtualizacaoEscala);
+  }
+
+  timerAtualizacaoEscala=setTimeout(()=>{
+    carregarEscalaDaApi();
+  },atualizacaoSiteSegundos*1000);
+}
+
 
 function parametrosDaPaginaEscala(){
   const paginaParams=new URLSearchParams(window.location.search);
@@ -4640,7 +4661,16 @@ function carregarEscalaDoCache(){
 
 window.receberEscalaRedencao=function(payload){
   salvarEscalaNoCache(payload);
+
+  if(payload && payload.config){
+    atualizacaoSiteSegundos=normalizarIntervaloAtualizacao(
+      payload.config.atualizacaoSite
+    );
+  }
+
   aplicarDadosDaApi(payload);
+  atualizacaoEscalaEmAndamento=false;
+  agendarProximaAtualizacao();
 };
 
 function carregarEscalaDaApi(){
@@ -4648,6 +4678,12 @@ function carregarEscalaDaApi(){
     console.warn('Configure API_ESCALA_URL no index.html para alimentar a página pela planilha.');
     return;
   }
+
+  if(atualizacaoEscalaEmAndamento){
+    return;
+  }
+
+  atualizacaoEscalaEmAndamento=true;
 
   const pagina=parametrosDaPaginaEscala();
   const modo=pagina.modo;
@@ -4667,7 +4703,18 @@ function carregarEscalaDaApi(){
   const separador=API_ESCALA_URL.includes('?') ? '&' : '?';
   script.src=API_ESCALA_URL + separador + apiParams.toString();
   script.async=true;
-  script.onerror=()=>console.error('Não foi possível conectar à API da escala.');
+
+  script.onload=()=>{
+    script.remove();
+  };
+
+  script.onerror=()=>{
+    console.error('Não foi possível conectar à API da escala.');
+    atualizacaoEscalaEmAndamento=false;
+    script.remove();
+    agendarProximaAtualizacao();
+  };
+
   document.head.appendChild(script);
 }
 
@@ -5527,6 +5574,13 @@ if(document.querySelector(".brand-hero")){
   },{passive:true});
 }
 
+
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    carregarEscalaDaApi();
+  }
+});
 
 carregarEscalaDoCache();
 carregarEscalaDaApi();
