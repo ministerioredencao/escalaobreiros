@@ -4408,6 +4408,37 @@ textarea{
   }
 }
 
+
+/* V42 — no touch/mobile o scroll principal é controlado pelo gesto acima.
+   Drawers continuam usando o scroll nativo, que já funciona corretamente. */
+@media (max-width:699px), (hover:none) and (pointer:coarse){
+  .app{
+    touch-action:none !important;
+    scroll-behavior:auto !important;
+  }
+
+  .drawer,
+  .drawer *{
+    touch-action:pan-y !important;
+  }
+
+  .app input,
+  .app textarea,
+  .app select{
+    touch-action:auto !important;
+  }
+
+  .app button,
+  .app a,
+  .app .position-btn,
+  .app .room-action,
+  .app .nav-btn,
+  .app .roster-fab,
+  .app .clean-fab{
+    touch-action:none !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -4796,12 +4827,26 @@ function aplicarDadosDaApi(payload){
   // A lista usada na busca passa a vir diretamente da aba CADASTRO.
   // Assim a grafia fica exatamente igual à lista do ADM/planilha.
   if(Array.isArray(payload.cadastro) && payload.cadastro.length){
-    OBREIROS_CADASTRADOS=payload.cadastro
-      .map(p=>String(p?.nome||'').trim())
-      .filter(Boolean);
+    const cadastroLimpo=payload.cadastro
+      .map(p=>({
+        id:String(p?.id||'').trim(),
+        nome:String(p?.nome||'').trim(),
+        sexo:String(p?.sexo||'').trim().toUpperCase(),
+        fotoArquivo:String(p?.fotoArquivo||'').trim()
+      }))
+      .filter(p=>p.nome);
+
+    OBREIROS_CADASTRADOS=cadastroLimpo.map(p=>p.nome);
 
     OBREIROS_CADASTRADOS_NORMALIZADOS=
       new Set(OBREIROS_CADASTRADOS.map(normalizedName));
+
+    CADASTRO_META_POR_NOME=
+      new Map(cadastroLimpo.map(p=>[normalize(p.nome),p]));
+  }
+
+  if(payload?.config?.pastaFotos){
+    PASTA_FOTOS=normalizarPastaFotos(payload.config.pastaFotos);
   }
 
   // sectors foi criado quando a página ainda estava vazia.
@@ -4818,7 +4863,7 @@ function aplicarDadosDaApi(payload){
 
 
 /* ============================================================
-   V41 — CARREGAMENTO RÁPIDO + ATUALIZAÇÃO AUTOMÁTICA + SCROLL CONTAINER NATIVO
+   V42 — FOTOS DETERMINÍSTICAS + ATUALIZAÇÃO AUTOMÁTICA + SCROLL TOUCH CONSISTENTE
    - Mostra instantaneamente a última escala salva no navegador.
    - Atualiza em segundo plano com a planilha.
    - O intervalo vem da CONFIG > ATUALIZACAO_SITE.
@@ -5025,7 +5070,18 @@ const ESCALA = {
 /* ======================== FIM DOS DADOS ======================== */
 
 function pessoa(nome, role, tag, gender){
-  return { name:nome, role, tag, gender };
+  const meta=metaCadastroPorNome(nome);
+  const sexoMeta=String(meta?.sexo||'').toUpperCase();
+  const genderMeta=sexoMeta==='F' ? 'f' : (sexoMeta==='M' ? 'm' : null);
+
+  return {
+    name:nome,
+    role,
+    tag,
+    gender:genderMeta || gender || 'm',
+    id:String(meta?.id||'').trim(),
+    fotoArquivo:String(meta?.fotoArquivo||'').trim()
+  };
 }
 
 function criarSetores(){
@@ -5079,6 +5135,22 @@ function criarSetores(){
 
 let sectors = criarSetores();
 
+let CADASTRO_META_POR_NOME = new Map();
+let PASTA_FOTOS = 'fotos/';
+
+function normalizarPastaFotos(valor){
+  let pasta=String(valor || 'fotos/').trim();
+  if(!pasta) pasta='fotos/';
+  pasta=pasta.replace(/^\/+/, '');
+  if(!pasta.endsWith('/')) pasta+='/';
+  return pasta;
+}
+
+function metaCadastroPorNome(nome){
+  return CADASTRO_META_POR_NOME.get(normalize(String(nome || ''))) || null;
+}
+
+
 
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
@@ -5102,56 +5174,69 @@ function escapeHtml(value){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
-function photoStem(name){
-  return String(name)
-    .trim()
-    .replace(/[.]+$/g,"")
-    .replace(/[\\/:"*?<>|]/g,"-");
-}
-function photoCandidates(name){
-  const stem=encodeURIComponent(photoStem(name));
-  return [".jpg",".jpeg",".png",".webp",".JPG",".PNG"].map(ext=>`${stem}${ext}`);
-}
 function avatar(person){
   const gender=person && person.gender==="f" ? "f" : "m";
   const src=gender==="f" ? "avatar-feminino.webp" : "avatar-masculino.webp";
   const label=gender==="f" ? "Avatar feminino provisório" : "Avatar masculino provisório";
-  return `<img class="fallback-avatar" src="${src}" alt="${label}">`;
+  return `<img class="fallback-avatar" src="${src}" alt="${label}" width="220" height="220" decoding="async">`;
 }
+
+function caminhoFoto(person){
+  const arquivo=String(person?.fotoArquivo||'').trim();
+
+  // REGRA DEFINITIVA:
+  // campo FOTO_ARQUIVO vazio = não há foto => avatar imediato.
+  // campo preenchido = usa exatamente esse arquivo na pasta CONFIG/PASTA_FOTOS.
+  if(!arquivo) return '';
+
+  const arquivoSeguro=arquivo
+    .replace(/^\/+/, '')
+    .split('/')
+    .map(parte=>encodeURIComponent(parte))
+    .join('/');
+
+  return PASTA_FOTOS + arquivoSeguro;
+}
+
 function photoHtml(person){
-  const files=photoCandidates(person.name);
+  const src=caminhoFoto(person);
+
+  if(!src){
+    return avatar(person);
+  }
+
   const gender=person && person.gender==="f" ? "f" : "m";
+
   return `<img
-    src="${files[0]}"
+    src="${src}"
     alt="Foto de ${escapeHtml(person.name)}"
+    data-real-photo="1"
     data-photo-name="${escapeHtml(person.name)}"
     data-photo-gender="${gender}"
-    data-photo-files="${escapeHtml(JSON.stringify(files))}"
-    data-photo-index="0">`;
+    width="220"
+    height="220"
+    decoding="async"
+    loading="lazy">`;
 }
+
 function activatePhotoFallbacks(root=document){
-  root.querySelectorAll("img[data-photo-files]").forEach(img=>{
+  root.querySelectorAll("img[data-real-photo='1']").forEach(img=>{
+    if(img.dataset.fallbackBound==='1') return;
+    img.dataset.fallbackBound='1';
+
     img.addEventListener("error",()=>{
-      const files=JSON.parse(img.dataset.photoFiles);
-      const next=Number(img.dataset.photoIndex)+1;
-      if(next<files.length){
-        img.dataset.photoIndex=String(next);
-        img.src=files[next];
-        return;
-      }
-      const name=img.dataset.photoName;
-      const card=img.closest(".photo");
+      const person={
+        name:img.dataset.photoName || '',
+        gender:img.dataset.photoGender==="f" ? "f" : "m"
+      };
+
+      const card=img.closest(".photo,.roster-photo,.after-photo");
       if(card){
-        const sectorPerson=[...Object.values(sectors)]
-          .flatMap(sector=>sector.people)
-          .find(item=>item.name===name);
-        const person=sectorPerson || {
-          name,
-          gender:img.dataset.photoGender==="f" ? "f" : "m"
-        };
         card.innerHTML=avatar(person);
+      }else{
+        img.outerHTML=avatar(person);
       }
-    });
+    },{once:true});
   });
 }
 function openScrim(){scrim.classList.add("open");document.body.style.overflow="hidden"}
@@ -5787,7 +5872,11 @@ function setImmersiveTilt(x,y){
 }
 
 const immersiveHero=document.querySelector(".brand-hero");
-if(immersiveHero && !window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+const podeUsarTilt=
+  window.matchMedia("(hover:hover) and (pointer:fine)").matches &&
+  !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+if(immersiveHero && podeUsarTilt){
   immersiveHero.addEventListener("pointermove",event=>{
     const rect=immersiveHero.getBoundingClientRect();
     const px=((event.clientX-rect.left)/rect.width-.5)*10;
@@ -5816,15 +5905,141 @@ function applySceneTilt(){
   scene.style.transform=
     `perspective(760px) rotateX(${x*.35}deg) rotateY(${y*.38}deg) translate3d(${y*.45}px,${x*.25}px,0)`;
 }
-if(document.querySelector(".brand-hero")){
+if(document.querySelector(".brand-hero") && podeUsarTilt){
   document.querySelector(".brand-hero").addEventListener("pointermove",()=>{
     requestAnimationFrame(applySceneTilt);
   });
-  window.addEventListener("deviceorientation",()=>{
-    requestAnimationFrame(applySceneTilt);
-  },{passive:true});
 }
 
+
+
+
+/* ============================================================
+   V42 — GESTO DE ROLAGEM CONSISTENTE NO iPHONE
+   O Safari estava iniciando o scroll apenas em algumas áreas.
+   Este controlador move o container .app diretamente durante o gesto,
+   preservando cliques e mantendo os drawers com rolagem nativa.
+   ============================================================ */
+(function ativarRolagemTouchConsistente(){
+  const app=document.querySelector('.app');
+  if(!app) return;
+
+  const ehTouch=
+    window.matchMedia('(hover:none) and (pointer:coarse)').matches ||
+    ('ontouchstart' in window);
+
+  if(!ehTouch) return;
+
+  let ativo=false;
+  let movendo=false;
+  let inicioY=0;
+  let ultimoY=0;
+  let ultimoTempo=0;
+  let velocidade=0;
+  let momentumFrame=0;
+  let suprimirCliqueAte=0;
+
+  function alvoComScrollProprio(target){
+    return !!target.closest(
+      '.drawer, .scale-notice, input, textarea, select, [contenteditable="true"]'
+    );
+  }
+
+  function pararMomentum(){
+    if(momentumFrame){
+      cancelAnimationFrame(momentumFrame);
+      momentumFrame=0;
+    }
+  }
+
+  app.addEventListener('touchstart',event=>{
+    if(event.touches.length!==1) return;
+    if(alvoComScrollProprio(event.target)) return;
+
+    pararMomentum();
+
+    const y=event.touches[0].clientY;
+    ativo=true;
+    movendo=false;
+    inicioY=y;
+    ultimoY=y;
+    ultimoTempo=performance.now();
+    velocidade=0;
+  },{passive:true,capture:true});
+
+  app.addEventListener('touchmove',event=>{
+    if(!ativo || event.touches.length!==1) return;
+
+    const agora=performance.now();
+    const y=event.touches[0].clientY;
+    const deslocamentoTotal=y-inicioY;
+    const dy=y-ultimoY;
+    const dt=Math.max(8,agora-ultimoTempo);
+
+    if(!movendo && Math.abs(deslocamentoTotal)<5){
+      return;
+    }
+
+    movendo=true;
+
+    if(event.cancelable){
+      event.preventDefault();
+    }
+
+    const maxScroll=Math.max(0,app.scrollHeight-app.clientHeight);
+    const novoScroll=Math.max(0,Math.min(maxScroll,app.scrollTop-dy));
+    app.scrollTop=novoScroll;
+
+    velocidade=(-dy/dt);
+    ultimoY=y;
+    ultimoTempo=agora;
+  },{passive:false,capture:true});
+
+  function finalizarGesto(){
+    if(!ativo) return;
+
+    ativo=false;
+
+    if(!movendo) return;
+
+    suprimirCliqueAte=Date.now()+260;
+
+    let v=velocidade*16;
+    v=Math.max(-42,Math.min(42,v));
+
+    const passo=()=>{
+      const maxScroll=Math.max(0,app.scrollHeight-app.clientHeight);
+
+      if(Math.abs(v)<0.25){
+        momentumFrame=0;
+        return;
+      }
+
+      const antes=app.scrollTop;
+      app.scrollTop=Math.max(0,Math.min(maxScroll,app.scrollTop+v));
+
+      if(app.scrollTop===antes && (app.scrollTop===0 || app.scrollTop===maxScroll)){
+        momentumFrame=0;
+        return;
+      }
+
+      v*=0.935;
+      momentumFrame=requestAnimationFrame(passo);
+    };
+
+    momentumFrame=requestAnimationFrame(passo);
+  }
+
+  app.addEventListener('touchend',finalizarGesto,{passive:true,capture:true});
+  app.addEventListener('touchcancel',finalizarGesto,{passive:true,capture:true});
+
+  app.addEventListener('click',event=>{
+    if(Date.now()<suprimirCliqueAte){
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  },true);
+})();
 
 
 document.addEventListener('visibilitychange',()=>{
